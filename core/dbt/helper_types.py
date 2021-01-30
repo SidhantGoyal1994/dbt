@@ -5,9 +5,9 @@ from pathlib import Path
 from typing import Tuple, AbstractSet, Union
 
 from dbt.dataclass_schema import (
-    dbtClassMixin, JsonDict, ValidationError, FieldEncoder,
-    StrEnum,
+    dbtClassMixin, ValidationError, StrEnum,
 )
+from hologram import FieldEncoder, JsonDict
 from mashumaro.types import SerializableType
 
 

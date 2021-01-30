@@ -138,7 +138,8 @@ class Profile(HasCredentials):
     def validate(self):
         try:
             if self.credentials:
-                self.credentials.to_dict()
+                dct = self.credentials.to_dict()
+                self.credentials.validate(dct)
             dct = self.to_profile_info(serialize_credentials=True)
             ProfileConfig.validate(dct)
         except ValidationError as exc:
