@@ -106,7 +106,8 @@ class Readable:
         return cls.from_dict(data)  # type: ignore
 
 
-BASE_SCHEMAS_URL = 'https://schemas.getdbt.com/dbt/{name}/v{version}.json'
+BASE_SCHEMAS_URL = 'https://schemas.getdbt.com/'
+SCHEMA_PATH = 'dbt/{name}/v{version}.json'
 
 
 @dataclasses.dataclass
@@ -114,11 +115,15 @@ class SchemaVersion:
     name: str
     version: int
 
-    def __str__(self) -> str:
-        return BASE_SCHEMAS_URL.format(
+    @property
+    def path(self) -> str:
+        return SCHEMA_PATH.format(
             name=self.name,
-            version=self.version,
+            version=self.version
         )
+
+    def __str__(self) -> str:
+        return BASE_SCHEMAS_URL + self.path
 
 
 SCHEMA_VERSION_KEY = 'dbt_schema_version'
@@ -134,7 +139,7 @@ def get_metadata_env() -> Dict[str, str]:
     }
 
 
-@dataclasses.dataclass
+@ dataclasses.dataclass
 class BaseArtifactMetadata(JsonSchemaMixin):
     dbt_schema_version: str
     dbt_version: str = __version__
@@ -157,11 +162,11 @@ def schema_version(name: str, version: int):
     return inner
 
 
-@dataclasses.dataclass
+@ dataclasses.dataclass
 class VersionedSchema(JsonSchemaMixin):
     dbt_schema_version: ClassVar[SchemaVersion]
 
-    @classmethod
+    @ classmethod
     def json_schema(cls, embeddable: bool = False) -> Dict[str, Any]:
         result = super().json_schema(embeddable=embeddable)
         if not embeddable:
@@ -175,11 +180,11 @@ T = TypeVar('T', bound='ArtifactMixin')
 # metadata should really be a Generic[T_M] where T_M is a TypeVar bound to
 # BaseArtifactMetadata. Unfortunately this isn't possible due to a mypy issue:
 # https://github.com/python/mypy/issues/7520
-@dataclasses.dataclass(init=False)
+@ dataclasses.dataclass(init=False)
 class ArtifactMixin(VersionedSchema, Writable, Readable):
     metadata: BaseArtifactMetadata
 
-    @classmethod
+    @ classmethod
     def from_dict(
         cls: Type[T], data: Dict[str, Any], validate: bool = True
     ) -> T:

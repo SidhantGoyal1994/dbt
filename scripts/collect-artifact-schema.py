@@ -1,31 +1,59 @@
 #!/usr/bin/env python
 from dataclasses import dataclass
-from typing import Dict, Any
+from argparse import ArgumentParser
+from pathlib import Path
 import json
+from typing import Type, List
 
-from hologram import JsonSchemaMixin
 from dbt.contracts.graph.manifest import WritableManifest
 from dbt.contracts.results import (
     CatalogArtifact, RunResultsArtifact, FreshnessExecutionResultArtifact
 )
+from dbt.contracts.util import VersionedSchema
+from dbt.clients.system import write_file
+from dbt.utils import JSONEncoder
+
+# TODO(kwigley): we could look for subclasses instead
+artifacts: List[Type[VersionedSchema]] = [
+    WritableManifest,
+    CatalogArtifact,
+    RunResultsArtifact,
+    FreshnessExecutionResultArtifact
+]
 
 
-@dataclass
-class Schemas(JsonSchemaMixin):
-    manifest: Dict[str, Any]
-    catalog: Dict[str, Any]
-    run_results: Dict[str, Any]
-    freshness_results: Dict[str, Any]
+@ dataclass
+class Arguments:
+    path: Path
+
+    @ classmethod
+    def parse(cls) -> 'Arguments':
+        parser = ArgumentParser(
+            prog="Collect and write dbt arfifact schema"
+        )
+        parser.add_argument(
+            '--path',
+            type=Path,
+            help='The dir to write artifact schema',
+            required=True
+        )
+        parsed = parser.parse_args()
+        return cls(
+            path=parsed.path
+        )
+
+
+def collect_artifact_schema(args: Arguments):
+    artifacts_path = args.path.absolute()
+    for artifact_cls in artifacts:
+        file_path = artifacts_path / artifact_cls.dbt_schema_version.path
+        write_file(str(file_path), json.dumps(
+            artifact_cls.json_schema(), cls=JSONEncoder))
 
 
 def main():
-    schemas = Schemas(
-        manifest=WritableManifest.json_schema(),
-        catalog=CatalogArtifact.json_schema(),
-        run_results=RunResultsArtifact.json_schema(),
-        freshness_results=FreshnessExecutionResultArtifact.json_schema(),
-    )
-    print(json.dumps(schemas.to_dict()))
+    parsed = Arguments.parse()
+    collect_artifact_schema(parsed)
 
 
 if __name__ == '__main__':
