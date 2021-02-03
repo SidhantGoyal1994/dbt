@@ -1,14 +1,35 @@
 from typing import (
-    Type, ClassVar,
+    Type, ClassVar, Dict, cast, TypeVar
 )
 import re
 from dataclasses import fields
 from enum import Enum
+from datetime import datetime
+from dateutil.parser import parse
 
 from hologram import JsonSchemaMixin, FieldEncoder, ValidationError
 
 from mashumaro import DataClassDictMixin
-from mashumaro.types import SerializableType
+from mashumaro.types import SerializableEncoder, SerializableType
+
+
+class DateTimeSerializableEncoder(SerializableEncoder[datetime]):
+    @classmethod
+    def _serialize(cls, value: datetime) -> str:
+        out = value.isoformat()
+        # Assume UTC if timezone is missing
+        if value.tzinfo is None:
+            out = out + "Z"
+        return out
+
+    @classmethod
+    def _deserialize(cls, value: str) -> datetime:
+        return (
+            value if isinstance(value, datetime) else parse(cast(str, value))
+        )
+
+
+TV = TypeVar("TV")
 
 
 class dbtClassMixin(DataClassDictMixin, JsonSchemaMixin):
@@ -17,6 +38,9 @@ class dbtClassMixin(DataClassDictMixin, JsonSchemaMixin):
        against the schema
     """
 
+    _serializable_encoders: ClassVar[Dict[str, SerializableEncoder]] = {
+        'datetime.datetime': DateTimeSerializableEncoder(),
+    }
     _hyphenated: ClassVar[bool] = False
     ADDITIONAL_PROPERTIES: ClassVar[bool] = False
 

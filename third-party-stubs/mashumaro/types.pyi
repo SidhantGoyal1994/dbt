@@ -1,4 +1,12 @@
-from typing import Any, Optional
+from typing import Any, Optional, TypeVar, Generic
+
+TV = TypeVar("TV")
+
+class SerializableEncoder(Generic[TV]):
+    @classmethod
+    def _serialize(cls, value): ...
+    @classmethod
+    def _deserialize(cls, value): ...
 
 
 class SerializableType:
